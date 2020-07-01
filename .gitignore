@@ -6,3 +6,6 @@
 
 ## ignore visual studio debug file
 Debug/
+
+## ignore images
+images/
