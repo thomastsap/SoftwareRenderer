@@ -1,0 +1,8 @@
+## ignore user-specific files
+*.user
+
+## ignore visual studio cache/options directory
+.vs/
+
+## ignore visual studio debug file
+Debug/

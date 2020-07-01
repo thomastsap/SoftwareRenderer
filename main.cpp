@@ -174,7 +174,7 @@ WinMain(HINSTANCE Instance,
 			windowSoftwareRendererClass.lpszClassName,
 			"Software Renderer",
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-			0, 0, 1280, 720,
+			100, 100, 1296, 759,
 			0, 0, Instance, 0);
 
 		if (softwareRenderWindowHandle)
