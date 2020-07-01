@@ -1,5 +1,11 @@
+#ifndef HEADER_H
+#define HEADER_H
+
+#include <windows.h>
 #include <stdint.h>
-//#include <math.h>
+#include <cmath>
+#include <string>
+
 #define internal static 
 #define local_persist static 
 #define global_variable static
@@ -20,16 +26,7 @@ typedef uint64_t uint64;
 typedef float real32;
 typedef double real64;
 
-
-struct game_offscreen_buffer
-{
-	// NOTE(casey): Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
-	void *Memory;
-	int Width;
-	int Height;
-	int Pitch;
-	int BytesPerPixel;
-};
+#define Assert(Expression) if(!Expression) {*(int *)0 = 0;}
 
 struct win32_window_dimension
 {
@@ -48,3 +45,4 @@ struct win32_offscreen_buffer
 	int BytesPerPixel;
 };
 
+#endif 

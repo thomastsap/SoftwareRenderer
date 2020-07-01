@@ -1,5 +1,7 @@
 #include <windows.h>
 #include "header.h"
+#include "drawing.h"
+#pragma comment(lib, "winmm.lib")
 
 int softwareRendererRunning = 1;
 win32_offscreen_buffer GlobalBackbuffer = {};
@@ -22,26 +24,22 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
 	Buffer->BytesPerPixel = BytesPerPixel;
 
 	Buffer->Info.bmiHeader.biSize = sizeof(Buffer->Info.bmiHeader);
-	Buffer->Info.bmiHeader.biWidth = Buffer->Width; // width of the new DIB
-	Buffer->Info.bmiHeader.biHeight = -Buffer->Height; // treat bitmap as top-down (origin upper-left corner)
-	Buffer->Info.bmiHeader.biPlanes = 1; // must be one
-	Buffer->Info.bmiHeader.biBitCount = 32; // bits per pixel
-	Buffer->Info.bmiHeader.biCompression = BI_RGB; // uncompressed format
+	Buffer->Info.bmiHeader.biWidth = Buffer->Width;		// width of the new DIB
+	Buffer->Info.bmiHeader.biHeight = Buffer->Height;	// treat bitmap as bottom up (origin lower-right corner)
+	Buffer->Info.bmiHeader.biPlanes = 1;				// must be one
+	Buffer->Info.bmiHeader.biBitCount = 32;				// bits per pixel
+	Buffer->Info.bmiHeader.biCompression = BI_RGB;		// uncompressed format
 
 	int BitmapMemorySize = (Buffer->Width*Buffer->Height)*BytesPerPixel;
 	Buffer->Memory = VirtualAlloc(0, BitmapMemorySize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	Buffer->Pitch = Width * BytesPerPixel; // size of row in bytes
 
-	// TODO(casey): Probably clear this to black
 }
 
 internal void
 Win32DisplayCalculatedFrame(win32_offscreen_buffer *Buffer,
 	HDC DeviceContext, int WindowWidth, int WindowHeight)
 {
-	// NOTE(casey): For prototyping purposes, we're going to always blit
-	// 1-to-1 pixels to make sure we don't introduce artifacts with
-	// stretching while we are learning to code the renderer!
 	StretchDIBits(DeviceContext,
 		0, 0, Buffer->Width, Buffer->Height,
 		0, 0, Buffer->Width, Buffer->Height,
@@ -69,27 +67,27 @@ LRESULT CALLBACK softwareRendererWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wP
 
 	switch (uMsg)
 	{
-		case WM_CLOSE:
-		{
-			softwareRendererRunning = 0;
-		} break;
-		case WM_DESTROY:
-		{
-			softwareRendererRunning = 0;
-		} break;
-		case WM_PAINT:
-		{
-			PAINTSTRUCT Paint;
-			HDC DeviceContext = BeginPaint(hwnd, &Paint);
-			win32_window_dimension Dimension = Win32GetWindowDimension(hwnd);
-			Win32DisplayCalculatedFrame(&GlobalBackbuffer, DeviceContext,
-				Dimension.Width, Dimension.Height);
-			EndPaint(hwnd, &Paint);
-		} break;
-		default:
-		{
-			Result = DefWindowProcA(hwnd, uMsg, wParam, lParam);
-		} break;
+	case WM_CLOSE:
+	{
+		softwareRendererRunning = 0;
+	} break;
+	case WM_DESTROY:
+	{
+		softwareRendererRunning = 0;
+	} break;
+	case WM_PAINT:
+	{
+		PAINTSTRUCT Paint;
+		HDC DeviceContext = BeginPaint(hwnd, &Paint);
+		win32_window_dimension Dimension = Win32GetWindowDimension(hwnd);
+		Win32DisplayCalculatedFrame(&GlobalBackbuffer, DeviceContext,
+			Dimension.Width, Dimension.Height);
+		EndPaint(hwnd, &Paint);
+	} break;
+	default:
+	{
+		Result = DefWindowProcA(hwnd, uMsg, wParam, lParam);
+	} break;
 	}
 
 	return(Result);
@@ -102,36 +100,36 @@ void softwareRendererPendingMessages()
 	{
 		switch (Message.message)
 		{
-			case WM_QUIT:
-			{
-				softwareRendererRunning = 0;
-			} break;
+		case WM_QUIT:
+		{
+			softwareRendererRunning = 0;
+		} break;
 
-			default:
-			{
-				// some messages will bypass the queue and thus softwareRendererWindowProcedure will be called
-				TranslateMessage(&Message);
-				DispatchMessageA(&Message);
-			} break;
+		default:
+		{
+			// some messages will bypass the queue and thus softwareRendererWindowProcedure will be called
+			TranslateMessage(&Message);
+			DispatchMessageA(&Message);
+		} break;
 		}
 	}
 }
 
-internal void
-DrawPixel(game_offscreen_buffer *Buffer, int32 XPosition, int32 YPosition, uint32 Color)
-{
-	uint32 *Pixel = (uint32*)Buffer->Memory + YPosition * Buffer->Width + XPosition;
-	(*Pixel) = Color;
-}
 
 
 internal void 
 softwareRendererUpdateCalculateFrame(game_offscreen_buffer *Buffer)
 {
-	DrawPixel(Buffer, 9, 9, 0x00FFFFFF);
-	DrawPixel(Buffer, 11, 11, 0x00FFFFFF);
-	DrawPixel(Buffer, 12, 12, 0x00FFFFFF);
-	DrawPixel(Buffer, 13, 13, 0x00FFFFFF);
+	color testColor = { 0.0f, 0.0f, 0.0f, 0.5f };
+	color testColor2 = { 0.0f, 1.0f, 1.0f, 1.0f };
+
+	DrawRectangle(Buffer, 0, 0, 1280, 720, testColor);
+
+	DrawLine(Buffer, 0, 0, 1279, 719, testColor2);
+	DrawLine(Buffer, 1279, 0, 0, 719, testColor2);
+	DrawLine(Buffer, 1280/2, 0, 1280/2, 719, testColor2);
+	DrawLine(Buffer, 0, 720/2, 1279, 720/2, testColor2);
+
 }
 
 int CALLBACK
@@ -140,8 +138,28 @@ WinMain(HINSTANCE Instance,
 	LPSTR CommandLine,
 	int ShowCode) 
 {
+
+	
+	/*
+	UINT DesiredTimeResolution = 1; // in milliseconds
+	bool32 SleepIsGranular = (timeBeginPeriod(DesiredTimeResolution) == TIMERR_NOERROR);
+	if (!SleepIsGranular)
+	{
+		OutputDebugStringA("timeBeginPeriod: failed\n");
+	}
+	*/
+
+	//counting framerate 
+	LARGE_INTEGER systemCountsPerSecondLargeInteger = {};
+	BOOL querySuccessful = QueryPerformanceFrequency(&systemCountsPerSecondLargeInteger);
+	if (!querySuccessful)
+	{
+		OutputDebugStringA("QueryPerformanceCounter: failed\n");
+	}
+	int64 systemCountsPerSecond = systemCountsPerSecondLargeInteger.QuadPart;
+
 	WNDCLASSA windowSoftwareRendererClass = {};
-	//windowSoftwareRendererClass.style = CS_HREDRAW | CS_VREDRAW;
+	windowSoftwareRendererClass.style = CS_HREDRAW | CS_VREDRAW;
 	windowSoftwareRendererClass.lpfnWndProc = softwareRendererWindowProcedure;
 	// handle to the applications
 	windowSoftwareRendererClass.hInstance = Instance;
@@ -161,8 +179,14 @@ WinMain(HINSTANCE Instance,
 
 		if (softwareRenderWindowHandle)
 		{
+			
 			while (softwareRendererRunning)
 			{
+				// get number of cycles and number of counts at the start of the frame
+				uint64 cyclesAtStartOfFrame = __rdtsc();
+				LARGE_INTEGER countsAtStartOfFrame;
+				QueryPerformanceCounter(&countsAtStartOfFrame);
+				
 				softwareRendererPendingMessages();
 
 				game_offscreen_buffer Buffer = {};
@@ -171,13 +195,31 @@ WinMain(HINSTANCE Instance,
 				Buffer.Height = GlobalBackbuffer.Height;
 				Buffer.Pitch = GlobalBackbuffer.Pitch;
 				Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
-
-				softwareRendererUpdateCalculateFrame(&Buffer);
+				
+				softwareRendererUpdateCalculateFrame(&Buffer);				
 
 				// Before rendering the frame see if the window was resized
 				win32_window_dimension Dimension = Win32GetWindowDimension(softwareRenderWindowHandle);
 				HDC DeviceContext = GetDC(softwareRenderWindowHandle);
 				Win32DisplayCalculatedFrame(&GlobalBackbuffer, DeviceContext, Dimension.Width, Dimension.Height);
+
+				// get number of cycles and number of counts at the end of the frame
+				uint64 cyclesAtEndOfFrame = __rdtsc();
+				LARGE_INTEGER countsAtEndOfFrame;
+				QueryPerformanceCounter(&countsAtEndOfFrame);
+
+				
+				uint64 cyclesPerFrame = cyclesAtEndOfFrame - cyclesAtStartOfFrame;
+				uint64 CountsPerFrame = countsAtEndOfFrame.QuadPart - countsAtStartOfFrame.QuadPart;
+
+				real64 FramesPerSecond = (real64)systemCountsPerSecond / (real64)CountsPerFrame; // FPS = (system_counts / sec) / (counts / frame) = frames / sec
+				real64 MCyclesPerFrame = (real64)cyclesPerFrame / (1000.0f * 1000.0f);
+
+				char BufferMessage[256];
+				sprintf_s(BufferMessage, "Software Renderer %.02f FPS, %.02f MCPF \n", FramesPerSecond, MCyclesPerFrame);
+				OutputDebugStringA(BufferMessage);
+				SetWindowText(softwareRenderWindowHandle, BufferMessage);
+
 				ReleaseDC(softwareRenderWindowHandle, DeviceContext);
 			}
 		}
