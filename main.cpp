@@ -1,6 +1,7 @@
 #include <windows.h>
 #include "header.h"
 #include "drawing.h"
+#include <vector>
 #pragma comment(lib, "winmm.lib")
 
 int softwareRendererRunning = 1;
@@ -118,18 +119,61 @@ void softwareRendererPendingMessages()
 
 
 internal void 
-softwareRendererUpdateCalculateFrame(game_offscreen_buffer *Buffer)
+softwareRendererUpdateCalculateFrame(game_offscreen_buffer *Buffer, Model *model)
 {
 	color testColor = { 0.0f, 0.0f, 0.0f, 0.5f };
 	color testColor2 = { 0.0f, 1.0f, 1.0f, 1.0f };
 
 	DrawRectangle(Buffer, 0, 0, 1280, 720, testColor);
 
-	DrawLine(Buffer, 0, 0, 1279, 719, testColor2);
-	DrawLine(Buffer, 1279, 0, 0, 719, testColor2);
-	DrawLine(Buffer, 1280/2, 0, 1280/2, 719, testColor2);
-	DrawLine(Buffer, 0, 720/2, 1279, 720/2, testColor2);
+	for (unsigned int i = 0; i < model->faces.size(); i++)
+	{
+		vector3i v0 = model->faces[i];
+		
+		vector3f v1 = model->vertices[v0.x - 1];
+		vector3f v2 = model->vertices[v0.y - 1];
+		vector3f v3 = model->vertices[v0.z - 1];
 
+		int x0{}, y0{}, x1{}, y1{};
+
+		x0 = (v1.x + 1.0f) * 1279 / 2.0f;
+		y0 = (v1.y + 1.0f) * 719 / 2.0f;
+
+		x1 = (v2.x + 1.0f) * 1279 / 2.0f;
+		y1 = (v2.y + 1.0f) * 719 / 2.0f;
+
+		DrawLine(Buffer, x0, y0, x1, y1, testColor2);
+
+		x0 = (v2.x + 1.0f) * 1279 / 2.0f;
+		y0 = (v2.y + 1.0f) * 719 / 2.0f;
+
+		x1 = (v3.x + 1.0f) * 1279 / 2.0f;
+		y1 = (v3.y + 1.0f) * 719 / 2.0f;
+
+		DrawLine(Buffer, x0, y0, x1, y1, testColor2);
+
+		x0 = (v3.x + 1.0f) * 1279 / 2.0f;
+		y0 = (v3.y + 1.0f) * 719 / 2.0f;
+
+		x1 = (v1.x + 1.0f) * 1279 / 2.0f;
+		y1 = (v1.y + 1.0f) * 719 / 2.0f;
+
+		DrawLine(Buffer, x0, y0, x1, y1, testColor2);
+
+	}
+
+	//DrawLine(Buffer, 0, 0, 1279, 719, testColor2);
+	//DrawLine(Buffer, 1279, 0, 0, 719, testColor2);
+	//DrawLine(Buffer, 1280/2, 0, 1280/2, 719, testColor2);
+	//DrawLine(Buffer, 0, 720/2, 1279, 720/2, testColor2);
+}
+inline uint32
+SafeTruncateUInt64(uint64 Value)
+{
+	// TODO(casey): Defines for maximum values
+	Assert((Value <= 0xFFFFFFFF));
+	uint32 Result = (uint32)Value;
+	return(Result);
 }
 
 int CALLBACK
@@ -138,8 +182,68 @@ WinMain(HINSTANCE Instance,
 	LPSTR CommandLine,
 	int ShowCode) 
 {
+	// get command line arguments
+	LPWSTR *szArglist;
+	int nArgs;
+	int i;
+	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
+	if (szArglist == NULL)
+	{
+		OutputDebugString("CommandLineToArgvW failed\n");
+		return 0;
+	}
+	else
+	{
+		for (i = 0; i < nArgs; i++)
+		{
+			OutputDebugStringW(szArglist[i]);
+		}
+	}
 
+	Model model;
+
+	FILE * fp;
+	errno_t err;
+	err = _wfopen_s(&fp, szArglist[1], L"r");
+	if (!err)
+	{
+		vector3f v3f;
+		vector3i face;
+		int numberOfVertices{};
+		int numberOfFaces{};
+		int fscanfReturn{};
+		char z[5]{};
+		while (true)
+		{
+			// NOTE: fscanf ignores empty lines
+			if (fscanf_s(fp, "%s", z, sizeof(z)) > 0) 
+			{
+				if (strcmp(z, "v") == 0)
+				{
+					fscanf_s(fp, " %f %f %f\n", &v3f.x, &v3f.y, &v3f.z);
+					numberOfVertices++;
+					model.vertices.push_back(v3f);
+				}
+				else if (strcmp(z, "f") == 0)
+				{
+					fscanf_s(fp, " %d/%*d/%*d %d/%*d/%*d %d/%*d/%*d\n", &face.x, &face.y, &face.z);
+					model.faces.push_back(face);
+				}
+				else 
+					fscanf_s(fp, "%*[^\n]\n");
+			}
+			else
+				break;
+			
+		}
+	}
+	else
+		OutputDebugString("_wfopen_s: failed\n");
 	
+	
+	
+	
+
 	/*
 	UINT DesiredTimeResolution = 1; // in milliseconds
 	bool32 SleepIsGranular = (timeBeginPeriod(DesiredTimeResolution) == TIMERR_NOERROR);
@@ -154,25 +258,25 @@ WinMain(HINSTANCE Instance,
 	BOOL querySuccessful = QueryPerformanceFrequency(&systemCountsPerSecondLargeInteger);
 	if (!querySuccessful)
 	{
-		OutputDebugStringA("QueryPerformanceCounter: failed\n");
+		OutputDebugString("QueryPerformanceCounter: failed\n");
 	}
 	int64 systemCountsPerSecond = systemCountsPerSecondLargeInteger.QuadPart;
 
-	WNDCLASSA windowSoftwareRendererClass = {};
+	WNDCLASSW windowSoftwareRendererClass = {};
 	windowSoftwareRendererClass.style = CS_HREDRAW | CS_VREDRAW;
 	windowSoftwareRendererClass.lpfnWndProc = softwareRendererWindowProcedure;
 	// handle to the applications
 	windowSoftwareRendererClass.hInstance = Instance;
-	windowSoftwareRendererClass.lpszClassName = "SOFTWARE_RENDERER_CLASS";
+	windowSoftwareRendererClass.lpszClassName = L"SOFTWARE_RENDERER_CLASS";
 
 	Win32ResizeDIBSection(&GlobalBackbuffer, 1280, 720);
 
-	if (RegisterClassA(&windowSoftwareRendererClass))
+	if (RegisterClassW(&windowSoftwareRendererClass))
 	{
-		HWND softwareRenderWindowHandle = CreateWindowExA(
+		HWND softwareRenderWindowHandle = CreateWindowExW(
 			0,
 			windowSoftwareRendererClass.lpszClassName,
-			"Software Renderer",
+			L"Software Renderer",
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 			100, 100, 1296, 759,
 			0, 0, Instance, 0);
@@ -196,7 +300,7 @@ WinMain(HINSTANCE Instance,
 				Buffer.Pitch = GlobalBackbuffer.Pitch;
 				Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
 				
-				softwareRendererUpdateCalculateFrame(&Buffer);				
+				softwareRendererUpdateCalculateFrame(&Buffer, &model);				
 
 				// Before rendering the frame see if the window was resized
 				win32_window_dimension Dimension = Win32GetWindowDimension(softwareRenderWindowHandle);
@@ -217,21 +321,21 @@ WinMain(HINSTANCE Instance,
 
 				char BufferMessage[256];
 				sprintf_s(BufferMessage, "Software Renderer %.02f FPS, %.02f MCPF \n", FramesPerSecond, MCyclesPerFrame);
-				OutputDebugStringA(BufferMessage);
-				SetWindowText(softwareRenderWindowHandle, BufferMessage);
+				OutputDebugString(BufferMessage);
+				SetWindowTextW(softwareRenderWindowHandle, (LPCWSTR)BufferMessage);
 
 				ReleaseDC(softwareRenderWindowHandle, DeviceContext);
 			}
 		}
 		else
 		{
-			OutputDebugStringA("CreateWindowExA: failed\n");
+			OutputDebugString("CreateWindowExA: failed\n");
 		}
 	}
 	else
 	{
-		OutputDebugStringA("RegisterClassA: failed\n");
+		OutputDebugString("RegisterClassA: failed\n");
 	}
-	OutputDebugStringA("asdasdsad\n");
+	OutputDebugString("asdasdsad\n");
 	return 0;
 }

@@ -3,6 +3,7 @@
 
 #include "header.h"
 #include "helper_functions.h"
+#include <vector>
 
 struct game_offscreen_buffer
 {
@@ -26,6 +27,28 @@ struct color
 	real32 R;
 	real32 G;
 	real32 B;
+};
+
+struct vector3i
+{
+	int x;
+	int y;
+	int z;
+};
+
+struct vector3f
+{
+	float x;
+	float y;
+	float z;
+};
+
+struct Model
+{
+	std::vector<vector3f> vertices;
+	int numberOfVertices;
+	std::vector<vector3i> faces;
+	int numerOfFaces;
 };
 
 drawingResult

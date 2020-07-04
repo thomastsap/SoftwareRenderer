@@ -9,3 +9,6 @@ Debug/
 
 ## ignore images
 images/
+
+##ignore .obj files for now
+*.obj
