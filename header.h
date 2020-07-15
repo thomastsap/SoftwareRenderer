@@ -26,7 +26,7 @@ typedef uint64_t uint64;
 typedef float real32;
 typedef double real64;
 
-#define Assert(Expression) if(!Expression) {*(int *)0 = 0;}
+#define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
 
 struct win32_window_dimension
 {

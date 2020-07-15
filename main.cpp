@@ -121,7 +121,7 @@ void softwareRendererPendingMessages()
 internal void 
 softwareRendererUpdateCalculateFrame(game_offscreen_buffer *Buffer, Model *model)
 {
-	color testColor = { 0.0f, 0.0f, 0.0f, 0.5f };
+	color testColor = { 0.0f, 0.168f, 0.176f, 0.184f };
 	color testColor2 = { 0.0f, 1.0f, 1.0f, 1.0f };
 
 	DrawRectangle(Buffer, 0, 0, 1280, 720, testColor);
@@ -136,27 +136,27 @@ softwareRendererUpdateCalculateFrame(game_offscreen_buffer *Buffer, Model *model
 
 		int x0{}, y0{}, x1{}, y1{};
 
-		x0 = (v1.x + 1.0f) * 1279 / 2.0f;
-		y0 = (v1.y + 1.0f) * 719 / 2.0f;
+		x0 = (v1.x ) * 719 + 700 / 2;
+		y0 = (v1.y ) * 719;
 
-		x1 = (v2.x + 1.0f) * 1279 / 2.0f;
-		y1 = (v2.y + 1.0f) * 719 / 2.0f;
-
-		DrawLine(Buffer, x0, y0, x1, y1, testColor2);
-
-		x0 = (v2.x + 1.0f) * 1279 / 2.0f;
-		y0 = (v2.y + 1.0f) * 719 / 2.0f;
-
-		x1 = (v3.x + 1.0f) * 1279 / 2.0f;
-		y1 = (v3.y + 1.0f) * 719 / 2.0f;
+		x1 = (v2.x ) * 719 + 700 / 2;
+		y1 = (v2.y ) * 719;
 
 		DrawLine(Buffer, x0, y0, x1, y1, testColor2);
 
-		x0 = (v3.x + 1.0f) * 1279 / 2.0f;
-		y0 = (v3.y + 1.0f) * 719 / 2.0f;
+		x0 = (v2.x ) * 719 + 700 / 2;
+		y0 = (v2.y) * 719;
 
-		x1 = (v1.x + 1.0f) * 1279 / 2.0f;
-		y1 = (v1.y + 1.0f) * 719 / 2.0f;
+		x1 = (v3.x ) * 719 + 700 / 2;
+		y1 = (v3.y ) * 719;
+
+		DrawLine(Buffer, x0, y0, x1, y1, testColor2);
+
+		x0 = (v3.x ) * 719 + 700 / 2;
+		y0 = (v3.y ) * 719;
+
+		x1 = (v1.x ) * 719 + 700 / 2;
+		y1 = (v1.y ) * 719;
 
 		DrawLine(Buffer, x0, y0, x1, y1, testColor2);
 
@@ -167,14 +167,119 @@ softwareRendererUpdateCalculateFrame(game_offscreen_buffer *Buffer, Model *model
 	//DrawLine(Buffer, 1280/2, 0, 1280/2, 719, testColor2);
 	//DrawLine(Buffer, 0, 720/2, 1279, 720/2, testColor2);
 }
-inline uint32
-SafeTruncateUInt64(uint64 Value)
+
+// object should be located in the project file, that is in the same folder as main function
+internal Model *
+loadObjModel(LPWSTR modelName)
 {
-	// TODO(casey): Defines for maximum values
-	Assert((Value <= 0xFFFFFFFF));
-	uint32 Result = (uint32)Value;
-	return(Result);
+	if (modelName)
+	{
+		Model *model = (Model *)VirtualAlloc(0, sizeof(Model), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+		if (model)
+		{
+			FILE * fp;
+			errno_t err;
+			err = _wfopen_s(&fp, modelName, L"r");
+			int getfaceFormat = 0;
+			enum FaceFormat 
+			{
+				UNDEFINED_FORMAT,
+				SUPPORTED_FORMAT, // f %d/%d/%d %d/%d/%d %d/%d/%d
+			} faceFormat = UNDEFINED_FORMAT;
+
+			if (!err)
+			{
+				vector3f v3f;
+				vector3i face;
+				real32 minX{ FLT_MAX }, maxX{ -FLT_MAX }, minY{ FLT_MAX }, maxY{ -FLT_MAX }, minZ{ FLT_MAX }, maxZ{ -FLT_MAX };
+				char characterRead[5]{};
+				while (true)
+				{
+					// NOTE: fscanf ignores empty lines
+					if (fscanf_s(fp, "%s", characterRead, sizeof(characterRead)) > 0)
+					{
+						if (strcmp(characterRead, "v") == 0)
+						{
+							fscanf_s(fp, " %f %f %f\n", &v3f.x, &v3f.y, &v3f.z);
+							model->vertices.push_back(v3f);
+							if (v3f.x < minX)
+								minX = v3f.x;
+							if (v3f.y < minY)
+								minY = v3f.y;
+							if (v3f.z < minZ)
+								minZ = v3f.z;
+							if (v3f.x > maxX)
+								maxX = v3f.x;
+							if (v3f.y > maxY)
+								maxY = v3f.y;
+							if (v3f.z > maxZ)
+								maxZ = v3f.z;
+						}
+						else if (strcmp(characterRead, "f") == 0)
+						{
+							if (!getfaceFormat)
+							{
+								fpos_t filePosition = 0; // store file position in order to restore it after i specified face format
+								int numberOfCharactersRead = 0;
+								numberOfCharactersRead = fscanf_s(fp, " %d/%*[^ ] %d/%*[^ ] %d/%*[^\n]\n", &face.x, &face.y, &face.z);
+								if (numberOfCharactersRead == 3)
+								{
+									model->faces.push_back(face);
+									faceFormat = SUPPORTED_FORMAT;
+								}
+								getfaceFormat = 1;
+							}
+							if (faceFormat == UNDEFINED_FORMAT)
+								return model;
+							else if(faceFormat == SUPPORTED_FORMAT)
+								fscanf_s(fp, " %d/%*[^ ] %d/%*[^ ] %d/%*[^\n]\n", &face.x, &face.y, &face.z);
+								
+							model->faces.push_back(face);
+						}
+						else
+							fscanf_s(fp, "%*[^\n]\n");
+					}
+					else
+					{
+						if (strcmp(characterRead, "") == 0)
+						{ 
+							fscanf_s(fp, "%*[^\n]\n");
+						}
+						else
+							break;
+					}
+						
+
+				}
+				fclose(fp);
+
+				real32 r_x = maxX - minX;
+				real32 r_y = maxY - minY;
+				real32 r_z = maxZ - minZ;
+				real32 slope_x = 1 / r_x;
+				real32 slope_y = 1 / r_y;
+				real32 slope_z = 1 / r_z;
+
+				real32 max = maxX - minX;
+				if ((maxY - minY) > max)
+					max = (maxY - minY);
+				//if ((maxZ - minZ) > max)
+				//	max = (maxZ - minZ);
+				
+				for (int i = 0; i < model->vertices.size(); i++)
+				{
+					model->vertices[i].x = float(model->vertices[i].x - minX) / max; // *slope_x;
+					model->vertices[i].y = (model->vertices[i].y - minY) / max; // *slope_y;
+					//model->vertices[i].z = (model->vertices[i].z - minZ) / max; // *slope_z;
+				}
+
+				return model;
+			}
+		}
+	}
+	return NULL;
 }
+
 
 int CALLBACK
 WinMain(HINSTANCE Instance,
@@ -200,48 +305,8 @@ WinMain(HINSTANCE Instance,
 		}
 	}
 
-	Model model;
+	Model *model = loadObjModel(szArglist[1]);
 
-	FILE * fp;
-	errno_t err;
-	err = _wfopen_s(&fp, szArglist[1], L"r");
-	if (!err)
-	{
-		vector3f v3f;
-		vector3i face;
-		int numberOfVertices{};
-		int numberOfFaces{};
-		int fscanfReturn{};
-		char z[5]{};
-		while (true)
-		{
-			// NOTE: fscanf ignores empty lines
-			if (fscanf_s(fp, "%s", z, sizeof(z)) > 0) 
-			{
-				if (strcmp(z, "v") == 0)
-				{
-					fscanf_s(fp, " %f %f %f\n", &v3f.x, &v3f.y, &v3f.z);
-					numberOfVertices++;
-					model.vertices.push_back(v3f);
-				}
-				else if (strcmp(z, "f") == 0)
-				{
-					fscanf_s(fp, " %d/%*d/%*d %d/%*d/%*d %d/%*d/%*d\n", &face.x, &face.y, &face.z);
-					model.faces.push_back(face);
-				}
-				else 
-					fscanf_s(fp, "%*[^\n]\n");
-			}
-			else
-				break;
-			
-		}
-	}
-	else
-		OutputDebugString("_wfopen_s: failed\n");
-	
-	
-	
 	
 
 	/*
@@ -300,7 +365,7 @@ WinMain(HINSTANCE Instance,
 				Buffer.Pitch = GlobalBackbuffer.Pitch;
 				Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
 				
-				softwareRendererUpdateCalculateFrame(&Buffer, &model);				
+				softwareRendererUpdateCalculateFrame(&Buffer, model);				
 
 				// Before rendering the frame see if the window was resized
 				win32_window_dimension Dimension = Win32GetWindowDimension(softwareRenderWindowHandle);

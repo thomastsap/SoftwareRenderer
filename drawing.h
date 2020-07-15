@@ -31,9 +31,9 @@ struct color
 
 struct vector3i
 {
-	int x;
-	int y;
-	int z;
+	int32 x;
+	int32 y;
+	int32 z;
 };
 
 struct vector3f
@@ -48,7 +48,7 @@ struct Model
 	std::vector<vector3f> vertices;
 	int numberOfVertices;
 	std::vector<vector3i> faces;
-	int numerOfFaces;
+	int numberOfFaces;
 };
 
 drawingResult

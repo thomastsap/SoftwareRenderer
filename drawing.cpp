@@ -1,4 +1,5 @@
 #include "drawing.h"
+#include "helper_functions.h"
 
 drawingResult
 DrawPixel(game_offscreen_buffer *Buffer, int32 XPosition, int32 YPosition, color Color)
