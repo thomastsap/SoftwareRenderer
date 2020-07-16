@@ -4,7 +4,7 @@
 1. Programming language:  **C/C++**
 2. Target Platform: **Windows**
 
-Since i always wanted to know more about computer graphics and after reading [Eric Arneback's article](https://erkaman.github.io/posts/beginner_computer_graphics.html) and checking [Dmitry Sokolov's project](https://github.com/ssloy/tinyrenderer), i decided to create my own software rasterizer. I will try to minimize external dependencies to learn the concepts needed from first principles. That said, i am not going to use any graphics API (such as Opengl) or any library for Opengl development (such as glew or glfw). Along the way, i will try to upload here news, pictures describing the current state of the rasterizer. Something like a development diary.
+Since i always wanted to know more about computer graphics and after reading [Eric Arneback's article](https://erkaman.github.io/posts/beginner_computer_graphics.html) and checking [Dmitry Sokolov's project](https://github.com/ssloy/tinyrenderer), i decided to create my own software rasterizer. I will try to minimize external dependencies to learn the concepts needed from first principles. That said, i am not going to use any graphics API (such as Opengl) or any library for Opengl development (such as glew or glfw). Along the way, i will try to upload here news, pictures describing the current state of the rasterizer as well as the references that i used to achieve certain functionalities. Something like a development diary.
 
 The initial goals/steps of this project are the following:
 
