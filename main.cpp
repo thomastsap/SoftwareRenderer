@@ -1,6 +1,7 @@
 #include <windows.h>
-#include "header.h"
+#include "win_header.h"
 #include "drawing.h"
+#include "geometry.h"
 #include <vector>
 #pragma comment(lib, "winmm.lib")
 
@@ -116,56 +117,105 @@ void softwareRendererPendingMessages()
 	}
 }
 
+void triangle(vec3i t0, vec3i t1, vec3i t2, game_offscreen_buffer *Buffer, color colorRGBA)
+{
+	if (t0.y > t1.y) std::swap(t0, t1);
+	if (t0.y > t2.y) std::swap(t0, t2);
+	if (t1.y > t2.y) std::swap(t1, t2);
+	uint32 color2 = rgbaToUint32(colorRGBA);
 
+	if (t0.y == t1.y && t1.y == t2.y)
+		return;
+
+	int total_height = t2.y - t0.y;
+	
+	for (int y = t0.y; y < t1.y; y++)
+	{
+		int segment_height = t1.y - t0.y;
+		float alpha = (float)(y - t0.y) / total_height ;
+		float beta = (float)(y - t0.y) / segment_height;
+		vec3i A = t0 + (t2 - t0)*alpha;
+		vec3i B = t0 + (t1 - t0)*beta;
+		if (A.x > B.x) std::swap(A, B);
+		for (int j = A.x; j < B.x; j++)
+			DrawPixel(Buffer, j, y, color2);
+	}
+	
+	for (int y = t1.y; y < t2.y; y++)
+	{
+		int segment_height = t2.y - t1.y;
+		float alpha = (float)(y - t0.y) / total_height;
+		float beta = (float)(y - t1.y) / segment_height;
+		vec3i A = t0 + (t2 - t0)*alpha;
+		vec3i B = t1 + (t2 - t1)*beta;
+		if (A.x>B.x) std::swap(A, B);
+		for (int j = A.x; j < B.x; j++) {
+			DrawPixel(Buffer, j, y, color2);
+		}
+	}
+
+	//color testColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+	//DrawLine(Buffer, t0.x, t0.y, t1.x, t1.y, testColor);
+	//DrawLine(Buffer, t1.x, t1.y, t2.x, t2.y, testColor);
+	//DrawLine(Buffer, t2.x, t2.y, t0.x, t0.y, testColor);
+}
 
 internal void 
 softwareRendererUpdateCalculateFrame(game_offscreen_buffer *Buffer, Model *model)
 {
 	color testColor = { 0.0f, 0.168f, 0.176f, 0.184f };
 	color testColor2 = { 0.0f, 1.0f, 1.0f, 1.0f };
+	color testColor3 = { 0.729f, 0.0f, 0.529f, 0.349f };
 
 	DrawRectangle(Buffer, 0, 0, 1280, 720, testColor);
-
+	/*
+	vec3i t0[3] = { vec3i(400, 100, 0), vec3i(200, 199, 0), vec3i(600, 199, 0) };
+	vec3i t1[3] = { vec3i(200, 199, 0), vec3i(400, 299, 0), vec3i(600, 199, 0) };
+	vec3i t2[3] = { vec3i(200, 200, 0), vec3i(400, 300, 0), vec3i(200, 400, 0) };
+	vec3i t3[3] = { vec3i(400, 300, 0), vec3i(600, 200, 0), vec3i(600, 400, 0) };
+	vec3i t4[3] = { vec3i(400, 300, 0), vec3i(200, 400, 0), vec3i(600, 400, 0) };
+	vec3i t5[3] = { vec3i(200, 400, 0), vec3i(600, 400, 0), vec3i(400, 500, 0) };
+	
+	triangle(t0[0], t0[1], t0[2], Buffer, testColor3);
+	triangle(t1[0], t1[1], t1[2], Buffer, testColor3);
+	triangle(t2[0], t2[1], t2[2], Buffer, testColor2);
+	triangle(t3[0], t3[1], t3[2], Buffer, testColor2);
+	triangle(t4[0], t4[1], t4[2], Buffer, testColor2);
+	triangle(t5[0], t5[1], t5[2], Buffer, testColor2);
+	*/
+	
 	for (unsigned int i = 0; i < model->faces.size(); i++)
 	{
-		vector3i v0 = model->faces[i];
-		
-		vector3f v1 = model->vertices[v0.x - 1];
-		vector3f v2 = model->vertices[v0.y - 1];
-		vector3f v3 = model->vertices[v0.z - 1];
+		vec3i v0 = model->faces[i];
+		vec3f v1 = model->vertices[v0[0] - 1];
+		vec3f v2= model->vertices[v0[1] - 1];
+		vec3f v3 = model->vertices[v0[2] - 1];
 
-		int x0{}, y0{}, x1{}, y1{};
+		vec3i a{ RoundReal32ToInt32((v1.x) * 719 + 700 / 2), RoundReal32ToInt32((v1.y) * 719),  0};
+		vec3i b{ RoundReal32ToInt32((v2.x) * 719 + 700 / 2), RoundReal32ToInt32((v2.y) * 719),  0 };
+		vec3i c{ RoundReal32ToInt32((v3.x) * 719 + 700 / 2), RoundReal32ToInt32((v3.y) * 719),  0 };
+		triangle(a, b, c, Buffer, testColor3);
 
-		x0 = (v1.x ) * 719 + 700 / 2;
-		y0 = (v1.y ) * 719;
-
-		x1 = (v2.x ) * 719 + 700 / 2;
-		y1 = (v2.y ) * 719;
-
-		DrawLine(Buffer, x0, y0, x1, y1, testColor2);
-
-		x0 = (v2.x ) * 719 + 700 / 2;
-		y0 = (v2.y) * 719;
-
-		x1 = (v3.x ) * 719 + 700 / 2;
-		y1 = (v3.y ) * 719;
-
-		DrawLine(Buffer, x0, y0, x1, y1, testColor2);
-
-		x0 = (v3.x ) * 719 + 700 / 2;
-		y0 = (v3.y ) * 719;
-
-		x1 = (v1.x ) * 719 + 700 / 2;
-		y1 = (v1.y ) * 719;
-
-		DrawLine(Buffer, x0, y0, x1, y1, testColor2);
-
+		int x = 45;
 	}
+	
+	for (unsigned int i = 0; i < model->faces.size(); i++)
+	{
+		vec3i v0 = model->faces[i];
+		for (int j = 0; j < 3; j++)
+		{
+			vec3f v1 = model->vertices[v0[j] - 1];
+			vec3f v2 = model->vertices[v0[(j + 1) % 3] - 1];
 
-	//DrawLine(Buffer, 0, 0, 1279, 719, testColor2);
-	//DrawLine(Buffer, 1279, 0, 0, 719, testColor2);
-	//DrawLine(Buffer, 1280/2, 0, 1280/2, 719, testColor2);
-	//DrawLine(Buffer, 0, 720/2, 1279, 720/2, testColor2);
+			int32 x0 = RoundReal32ToInt32((v1.x) * 719 + 700 / 2);
+			int32 y0 = RoundReal32ToInt32((v1.y) * 719);
+			int32 x1 = RoundReal32ToInt32((v2.x) * 719 + 700 / 2);
+			int32 y1 = RoundReal32ToInt32((v2.y) * 719);
+
+			DrawLine(Buffer, x0, y0, x1, y1, testColor2);
+		}
+	}
+	
 }
 
 // object should be located in the project file, that is in the same folder as main function
@@ -189,8 +239,8 @@ loadObjModel(LPWSTR modelName)
 
 			if (!err)
 			{
-				vector3f v3f;
-				vector3i face;
+				vec3f v3f;
+				vec3i face;
 				real32 minX{ FLT_MAX }, maxX{ -FLT_MAX }, minY{ FLT_MAX }, maxY{ -FLT_MAX }, minZ{ FLT_MAX }, maxZ{ -FLT_MAX };
 				char characterRead[5]{};
 				while (true)
@@ -248,38 +298,29 @@ loadObjModel(LPWSTR modelName)
 						else
 							break;
 					}
-						
-
 				}
 				fclose(fp);
 
 				real32 r_x = maxX - minX;
 				real32 r_y = maxY - minY;
-				real32 r_z = maxZ - minZ;
 				real32 slope_x = 1 / r_x;
 				real32 slope_y = 1 / r_y;
-				real32 slope_z = 1 / r_z;
 
 				real32 max = maxX - minX;
 				if ((maxY - minY) > max)
 					max = (maxY - minY);
-				//if ((maxZ - minZ) > max)
-				//	max = (maxZ - minZ);
 				
-				for (int i = 0; i < model->vertices.size(); i++)
+				for (uint32 i = 0; i < model->vertices.size(); i++)
 				{
 					model->vertices[i].x = float(model->vertices[i].x - minX) / max; // *slope_x;
 					model->vertices[i].y = (model->vertices[i].y - minY) / max; // *slope_y;
-					//model->vertices[i].z = (model->vertices[i].z - minZ) / max; // *slope_z;
 				}
-
 				return model;
 			}
 		}
 	}
 	return NULL;
 }
-
 
 int CALLBACK
 WinMain(HINSTANCE Instance,

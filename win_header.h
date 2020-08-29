@@ -1,5 +1,5 @@
-#ifndef HEADER_H
-#define HEADER_H
+#ifndef WIN_HEADER_H
+#define WIN_HEADER_H
 
 #include <windows.h>
 #include <stdint.h>

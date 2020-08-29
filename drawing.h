@@ -1,9 +1,10 @@
 #ifndef DRAWING_H
 #define DRAWING_H
 
-#include "header.h"
+#include "win_header.h"
 #include "helper_functions.h"
 #include <vector>
+#include "geometry.h"
 
 struct game_offscreen_buffer
 {
@@ -29,35 +30,23 @@ struct color
 	real32 B;
 };
 
-struct vector3i
-{
-	int32 x;
-	int32 y;
-	int32 z;
-};
-
-struct vector3f
-{
-	float x;
-	float y;
-	float z;
-};
-
 struct Model
 {
-	std::vector<vector3f> vertices;
+	std::vector<vec3f> vertices;
 	int numberOfVertices;
-	std::vector<vector3i> faces;
+	std::vector<vec3i> faces;
 	int numberOfFaces;
 };
 
-drawingResult
-DrawPixel(game_offscreen_buffer *Buffer, int32 XPosition, int32 YPosition, color Color);
+uint32 rgbaToUint32(color colorRGBA);
 
 drawingResult
-DrawLine(game_offscreen_buffer *Buffer, int32 x0, int32 y0, int32 x1, int32 y1, color Color);
+DrawPixel(game_offscreen_buffer *Buffer, int32 XPosition, int32 YPosition, uint32 Color);
 
 drawingResult
-DrawRectangle(game_offscreen_buffer *Buffer, int32 minX, int32 minY, int32 maxX, int32 maxY, color Color);
+DrawLine(game_offscreen_buffer *Buffer, int32 x0, int32 y0, int32 x1, int32 y1, color colorRGBA);
+
+drawingResult
+DrawRectangle(game_offscreen_buffer *Buffer, int32 minX, int32 minY, int32 maxX, int32 maxY, color colorRGBA);
 
 #endif

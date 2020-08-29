@@ -1,7 +1,7 @@
 #ifndef HELPER_FUNCTIONS_H
 #define HELPER_FUNCTIONS_H
 
-#include "header.h"
+#include "win_header.h"
 
 inline void
 swap(int32 *value1, int32 *value2)

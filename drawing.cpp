@@ -1,8 +1,17 @@
 #include "drawing.h"
 #include "helper_functions.h"
 
+
+uint32 rgbaToUint32(color colorRGBA)
+{
+	return	(RoundReal32ToUInt32(colorRGBA.A * 255.0f) << 24) +
+			(RoundReal32ToUInt32(colorRGBA.R * 255.0f) << 16) +
+			(RoundReal32ToUInt32(colorRGBA.G * 255.0f) << 8) +
+			(RoundReal32ToUInt32(colorRGBA.B * 255.0f) << 0);
+}
+
 drawingResult
-DrawPixel(game_offscreen_buffer *Buffer, int32 XPosition, int32 YPosition, color Color)
+DrawPixel(game_offscreen_buffer *Buffer, int32 XPosition, int32 YPosition, uint32 Color)
 {
 	if (!Buffer ||
 		(YPosition > Buffer->Height) ||
@@ -14,16 +23,13 @@ DrawPixel(game_offscreen_buffer *Buffer, int32 XPosition, int32 YPosition, color
 	}
 
 	uint32 *Pixel = (uint32*)Buffer->Memory + YPosition * Buffer->Width + XPosition;
-	(*Pixel) = (RoundReal32ToUInt32(Color.A * 255.0f) << 24) +
-		(RoundReal32ToUInt32(Color.R * 255.0f) << 16) +
-		(RoundReal32ToUInt32(Color.G * 255.0f) << 8) +
-		(RoundReal32ToUInt32(Color.B * 255.0f) << 0);
+	(*Pixel) = Color;
 
 	return DRAWING_SUCCESS;
 }
 
 drawingResult
-DrawLine(game_offscreen_buffer *Buffer, int32 x0, int32 y0, int32 x1, int32 y1, color Color)
+DrawLine(game_offscreen_buffer *Buffer, int32 x0, int32 y0, int32 x1, int32 y1, color colorRGBA)
 {
 	if (!Buffer ||
 		x0 < 0 || y0 < 0 || x1 < 0 || y1 < 0 ||
@@ -32,12 +38,8 @@ DrawLine(game_offscreen_buffer *Buffer, int32 x0, int32 y0, int32 x1, int32 y1, 
 	{
 		return DRAWING_ERROR_OUT_OF_BOUNDS;
 	}
-	//x1--;
-	// test
-	uint32 colorInt = ((RoundReal32ToUInt32(Color.A * 255.0f) << 24) |
-		(RoundReal32ToUInt32(Color.R * 255.0f) << 16) |
-		(RoundReal32ToUInt32(Color.G * 255.0f) << 8) |
-		(RoundReal32ToUInt32(Color.B * 255.0f) << 0));
+
+	uint32 color = rgbaToUint32(colorRGBA);
 
 	// Bresenham's Draw Lines Algorithm
 	bool steep = false;
@@ -62,16 +64,12 @@ DrawLine(game_offscreen_buffer *Buffer, int32 x0, int32 y0, int32 x1, int32 y1, 
 		if (steep)
 		{
 			uint32 *Pixel = (uint32*)Buffer->Memory + x * Buffer->Width + y;
-			(*Pixel) = colorInt;
-			//DrawPixel(Buffer, y, x, Color);
+			(*Pixel) = color;
 		}
 		else
 		{
-			//if (y >= Buffer->Height) 
-			//	y = Buffer->Height - 1;
 			uint32 *Pixel = (uint32*)Buffer->Memory + y * Buffer->Width + x;
-			(*Pixel) = colorInt;
-			//DrawPixel(Buffer, x, y, Color);
+			(*Pixel) = color;
 		}
 		error += derror;
 		if (error > dx)
@@ -85,7 +83,7 @@ DrawLine(game_offscreen_buffer *Buffer, int32 x0, int32 y0, int32 x1, int32 y1, 
 	return DRAWING_SUCCESS;
 }
 
-drawingResult DrawRectangle(game_offscreen_buffer * Buffer, int32 minX, int32 minY, int32 maxX, int32 maxY, color Color)
+drawingResult DrawRectangle(game_offscreen_buffer * Buffer, int32 minX, int32 minY, int32 maxX, int32 maxY, color colorRGBA)
 {
 	
 	if (!Buffer ||
@@ -96,10 +94,7 @@ drawingResult DrawRectangle(game_offscreen_buffer * Buffer, int32 minX, int32 mi
 		return DRAWING_ERROR_OUT_OF_BOUNDS;
 	}
 	
-	uint32 colorInt = ((RoundReal32ToUInt32(Color.A * 255.0f) << 24) |
-		(RoundReal32ToUInt32(Color.R * 255.0f) << 16) |
-		(RoundReal32ToUInt32(Color.G * 255.0f) << 8) |
-		(RoundReal32ToUInt32(Color.B * 255.0f) << 0));
+	uint32 color = rgbaToUint32(colorRGBA);
 
 
 	uint8 *Row = ((uint8 *)Buffer->Memory +
@@ -114,7 +109,7 @@ drawingResult DrawRectangle(game_offscreen_buffer * Buffer, int32 minX, int32 mi
 			X < maxX;
 			++X)
 		{
-			*Pixel++ = colorInt;
+			*Pixel++ = color;
 		}
 
 		Row += Buffer->Pitch;

@@ -7,6 +7,9 @@
 ## ignore visual studio debug file
 Debug/
 
+## ignore release file for now
+Release/
+
 ## ignore images
 images/
 
